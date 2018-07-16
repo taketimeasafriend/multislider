@@ -6,3 +6,7 @@
 
 - fit various resolution
 - fit Mac
+
+## preview
+
+![preview](http://pbxztmzhu.bkt.clouddn.com/image/multislider.png "preview")
