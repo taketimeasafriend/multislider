@@ -167,8 +167,12 @@ MultiSliderWidget::SpinBox *MultiSliderWidget::createSpinBox(int index) {
 }
 
 void MultiSliderWidget::initMultiSlider() {
+    //init data to test
+    m_sliceCountDefault = m_modelHeight/m_sliceHeightDefault;
+
     multiSlider = new MultiSlider(Qt::Vertical, this);
     multiSlider->setFixedWidth(80);
+    multiSlider->setMaximum(m_sliceCountDefault);
     //i like three. Three is a good number:)
     //just a joke. Three used because it enough to show functional and not too high to overload ui
     multiSlider->setCount(0);
@@ -221,18 +225,22 @@ void MultiSliderWidget::onSliderPositionsChanged(QVector<int> values) {
     if (multiSlider->count() == 0) {
         return;
     }
-    for (auto spinBox : spinBoxes) {
-        spinBox->blockSignals(true);
+    else
+    {
+        updataMultiSliderData(values);
     }
-    for (int i = 0; i < values.size(); i++) {
-        updateSpinBoxValue(i);
-    }
-    if (_showDifferences) {
-        spinBoxes.last()->setValue(multiSlider->maximum() - (multiSlider->count() ? multiSlider->positions().last() : multiSlider->minimum()));
-    }
-    for (auto spinBox : spinBoxes) {
-        spinBox->blockSignals(false);
-    }
+//    for (auto spinBox : spinBoxes) {
+//        spinBox->blockSignals(true);
+//    }
+//    for (int i = 0; i < values.size(); i++) {
+//        updateSpinBoxValue(i);
+//    }
+//    if (_showDifferences) {
+//        spinBoxes.last()->setValue(multiSlider->maximum() - (multiSlider->count() ? multiSlider->positions().last() : multiSlider->minimum()));
+//    }
+//    for (auto spinBox : spinBoxes) {
+//        spinBox->blockSignals(false);
+//    }
 }
 
 void MultiSliderWidget::onSliderRangeChanged(int min, int max) {
@@ -338,4 +346,62 @@ void MultiSliderWidget::setShowDifferences(bool arg) {
     onSliderPositionsChanged(multiSlider->positions());
     emit showDifferencesChanged(arg);
     emit showPositionsChanged(!arg);
+}
+
+void MultiSliderWidget::updataMultiSliderData(QVector<int> positions) {
+    // todo...
+    //int slicesCount = 0;
+    //multiSlider->setMaximum(slicesCount);
+    QVector<float> allHeights2Bot;
+    getAllHeights2Bot(allHeights2Bot);
+    COUTINFO << "======================================================";
+    COUTINFO << "All Layers:" << allHeights2Bot << "layers count:" << allHeights2Bot.size();
+}
+
+void MultiSliderWidget::getAllHeights2Bot(QVector<float> &allHeights2Bot) {
+    // every layer to bottom H
+    int nHandleSize = multiSlider->count();
+    float plus_Heights = 0.0;
+    float index_Height = 0.0;
+    int index_Slices = 0;
+    QVector<float> allHeights;
+    QVector<int> allSlices;
+    QVector<float> allSliceHeights;
+    for(int i=0; i< nHandleSize; i++){
+        index_Height = multiSlider->positions().at(i)*m_modelHeight / multiSlider->maximum() - plus_Heights; // not value
+        index_Slices = index_Height / multiSlider->sliceHeights().at(i);
+        allHeights.insert(i, index_Height);
+        allSlices.insert(i, index_Slices);
+        plus_Heights += index_Height;
+        allSliceHeights.push_back(multiSlider->sliceHeights().at(i));
+    }
+    // every seg H
+    allHeights.push_back(m_modelHeight-plus_Heights);
+    allHeights.insert(allHeights.begin(),0.0); // count = nHandleSize+2
+    // every seg layers count
+    allSlices.push_back((m_modelHeight-plus_Heights) / m_sliceHeightDefault);
+    // every seg cut H
+    allSliceHeights.push_back(m_sliceHeightDefault);
+    for(int i=0; i<nHandleSize+1; i++){ // every seg
+        float everyCutH = allSliceHeights.at(i);
+        float temp = 0.0;
+        for(int ii=0; ii<i+1; ii++){
+            temp += allHeights.at(ii);
+        }
+        for(int j=0; j<allSlices.at(i); j++){
+            temp += everyCutH;
+            allHeights2Bot.push_back(temp);
+        }
+    }
+    COUTINFO << "======================================================";
+    COUTINFO << "every seg H:" << allHeights;
+    COUTINFO << "every seg layers number:" << allSlices;
+    COUTINFO << "every seg cut H(handle below):" << allSliceHeights;
+}
+
+void MultiSliderWidget::getAllExpoTimes(QVector<float> &allExpoTimes) {
+    return;
+}
+void MultiSliderWidget::getAllLiftHs(QVector<int> &allLiftHs) {
+    return;
 }

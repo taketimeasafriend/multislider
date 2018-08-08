@@ -8,9 +8,9 @@
 #include <qevent.h>
 #include <QDebug>
 #include <QtMath>
-#include <QDialog>
+#include "SliceInfo.h"
 
-#define cout qDebug() << "[" << __FILE__ << ":" << __LINE__ << "]"
+#define COUTINFO qDebug() << "[" << __FILE__ << ":" << __LINE__ << "]"
 
 class QStylePainter;
 class MultiSlider;
@@ -22,6 +22,9 @@ class MultiSlider : public QSlider {
 
     Q_PROPERTY(QVector<int> values READ values WRITE setValues NOTIFY valuesChanged)
     Q_PROPERTY(QVector<int> positions READ positions NOTIFY positionsChanged)
+    Q_PROPERTY(QVector<float> sliceHeights READ sliceHeights NOTIFY sliceHeightsChanged)
+    Q_PROPERTY(QVector<float> sliceExpoTimes READ sliceExpoTimes NOTIFY sliceExpoTimesChanged)
+    Q_PROPERTY(QVector<int> sliceLiftHs READ sliceLiftHs NOTIFY sliceLiftHsChanged)
     Q_PROPERTY(int minimumRange READ minimumRange WRITE setMinimumRange NOTIFY minimumRangeChanged)
     Q_PROPERTY(QString handleToolTip READ handleToolTip WRITE setHandleToolTip)
     Q_PROPERTY(int count READ count WRITE setCount NOTIFY countChanged)
@@ -85,6 +88,7 @@ class MultiSlider : public QSlider {
             // search in every sub-rect
             int minInAllCenter = 999;
             int maxInAllCenter = 0;
+            // when >1 handles
             for (int i = 0; i < _count - 1; ++i) {
                 option.sliderPosition = _positions.at(i);
                 option.sliderValue = _values.at(i);
@@ -105,6 +109,16 @@ class MultiSlider : public QSlider {
                 }
             }
             if (mepos < minInAllCenter && _count > 0){
+                // when only 1 handle
+                if(1 == _count){
+                    option.sliderPosition = _positions.at(0);
+                    option.sliderValue = _values.at(0);
+                    QRect handleRect = q->style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, q);
+                    int currentCenter = handleRect.center().y();
+                    if (mepos > currentCenter) {
+                        return -1;
+                    }
+                }
                 return 999;
             }
 //            else if (mepos > maxCenter){
@@ -237,6 +251,11 @@ class MultiSlider : public QSlider {
         // Positions on slider.
         QVector<int> _positions;
 
+        // Slice Opt on slider
+        QVector<float> _sliceHeights;
+        QVector<float> _sliceExpoTimes;
+        QVector<int> _sliceLiftHs;
+
         // See QSliderPrivate::clickOffset.
         // Overrides this var
         int _subclassClickOffset;
@@ -317,6 +336,43 @@ public:
         Q_ASSERT(index >= 0);
         Q_ASSERT(index < d->_count);
         return d->_positions.at(index);
+    }
+
+    // holds the current slider sliceHeights.
+    // return slider current sliceHeights for all handles.
+    QVector<float> sliceHeights() const {
+        Q_D(const MultiSlider);
+        return d->_sliceHeights;
+    }
+    float sliceHeight(int index) const {
+        Q_D(const MultiSlider);
+        Q_ASSERT(index >= 0);
+        Q_ASSERT(index < d->_count);
+        return d->_sliceHeights.at(index);
+    }
+    // holds the current slider sliceExpoTimes.
+    // return slider current sliceExpoTimes for all handles.
+    QVector<float> sliceExpoTimes() const {
+        Q_D(const MultiSlider);
+        return d->_sliceExpoTimes;
+    }
+    float sliceExpoTime(int index) const {
+        Q_D(const MultiSlider);
+        Q_ASSERT(index >= 0);
+        Q_ASSERT(index < d->_count);
+        return d->_sliceExpoTimes.at(index);
+    }
+    // holds the current slider sliceLiftHs.
+    // return slider current sliceLiftHs for all handles.
+    QVector<int> sliceLiftHs() const {
+        Q_D(const MultiSlider);
+        return d->_sliceLiftHs;
+    }
+    int sliceLiftH(int index) const {
+        Q_D(const MultiSlider);
+        Q_ASSERT(index >= 0);
+        Q_ASSERT(index < d->_count);
+        return d->_sliceLiftHs.at(index);
     }
 
     // value at given index.
@@ -449,6 +505,11 @@ Q_SIGNALS:
     // param The argument is the new maximum count of slider handles
     void selectedHandleChanged(int arg);
 
+    //
+    void sliceHeightsChanged(QVector<int> arg);
+    void sliceExpoTimesChanged(QVector<int> arg);
+    void sliceLiftHsChanged(QVector<int> arg);
+
 public Q_SLOTS:
     // This property holds the slider's count.
     // param argument is count to set.
@@ -548,16 +609,25 @@ public Q_SLOTS:
         if (-1 == index){
             d->_positions.insert(0, insertPosition);
             d->_values.insert(0, insertPosition);
+            d->_sliceHeights.insert(0, 0.1);
+            d->_sliceExpoTimes.insert(0, 2.0);
+            d->_sliceLiftHs.insert(0, 3);
             d->_count++;
         }
         else if (999 == index){
             d->_positions.insert(d->_count, insertPosition);
             d->_values.insert(d->_count, insertPosition);
+            d->_sliceHeights.insert(d->_count, 0.1);
+            d->_sliceExpoTimes.insert(d->_count, 2.0);
+            d->_sliceLiftHs.insert(d->_count, 3);
             d->_count++;
         }
         else {
             d->_positions.insert(index + 1, insertPosition);
             d->_values.insert(index + 1, insertPosition);
+            d->_sliceHeights.insert(index + 1, 0.1);
+            d->_sliceExpoTimes.insert(index + 1, 2.0);
+            d->_sliceLiftHs.insert(index + 1, 3);
             d->_count++;
         }
         emit countChanged(d->_count);
@@ -756,7 +826,7 @@ protected:
 
         QRect handleRect;
         int handle = d->handleAtPos(e->pos(), handleRect);
-        cout << "pressed index = " << handle << "handle";
+        COUTINFO << "pressed index = " << handle << "handle";
 
         if (handle != -1) {
             d->_subclassPosition = d->_positions.at(handle);
@@ -777,7 +847,7 @@ protected:
 
         QStyle::SubControl control = this->style()->hitTestComplexControl(QStyle::CC_Slider, &option, e->pos(), this);
         int index = d->posBetweenHandles(e->pos());
-        cout << "between index and index+1: index = " << index;
+        COUTINFO << "between index and index+1: index = " << index;
         if (control == QStyle::SC_SliderGroove && -1 != index && index < 999) {
             // warning lost of precision it might be fatal
             d->_subclassPosition = (d->_positions.at(index) + d->_positions.at(index + 1)) / 2.;
@@ -859,11 +929,20 @@ protected:
         int handle = d->handleAtPos(e->pos(), handleRect);
 
         if (handle != -1){
-            cout << "double clicked handle" << handle;
-            // todo...
-            QDialog test;
-            test.setWindowTitle("slicer info");
-            test.exec();
+            COUTINFO << "double clicked handle" << handle;
+            // show value
+            SliceInfo SliceInfoDlg;
+            SliceInfoDlg.m_dataComBoxLayerH->setCurrentText(QString::number(d->_sliceHeights[handle]));
+            SliceInfoDlg.m_dataComBoxTime->setCurrentText(QString::number(d->_sliceExpoTimes[handle]));
+            SliceInfoDlg.m_dataComBoxLiftH->setCurrentText(QString::number(d->_sliceLiftHs[handle]));
+            SliceInfoDlg.exec();
+            // change value
+            if(SliceInfoDlg.m_Saved)
+            {
+                d->_sliceHeights[handle] = SliceInfoDlg.m_RetLayerH;
+                d->_sliceExpoTimes[handle] = SliceInfoDlg.m_RetExpoTime;
+                d->_sliceLiftHs[handle] = SliceInfoDlg.m_RetLiftH;
+            }
         }
         else{
             int insertIndex = d->posBetweenHandles(e->pos());

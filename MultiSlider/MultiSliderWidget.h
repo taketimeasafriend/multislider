@@ -59,6 +59,7 @@ private:
 public:
     bool labelsUnder() const;
     bool showPositions() const;
+    void updataMultiSliderData(QVector<int> positions);
 
 public slots:
     void setLabelsUnder(bool arg);
@@ -73,6 +74,16 @@ signals:
 private:
     bool m_labelsUnder = false;
     bool _showDifferences = true;
+
+public:
+    // default slice data
+    const float m_modelHeight = 10.0;
+    const float m_sliceHeightDefault = 0.01;
+    int m_sliceCountDefault;
+public:
+    void getAllHeights2Bot(QVector<float> &allHeights2Bot);
+    void getAllExpoTimes(QVector<float> &allExpoTimes);
+    void getAllLiftHs(QVector<int> &allLiftHs);
 };
 
 #endif // MULTISLIDERWIDGET_H
