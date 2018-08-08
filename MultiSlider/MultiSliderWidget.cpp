@@ -141,8 +141,8 @@ void MultiSliderWidget::createWidget() {
 
     //vLayout = new QHBoxLayout();
     addToTopButton = CreateFlatButton(":/res/icon/add.png");
-    connect(addToTopButton, &QPushButton::clicked, multiSlider, &MultiSlider::addOneToTop); // add 5 handles for testing
-    vLayout->addWidget(addToTopButton);
+    connect(addToTopButton, &QPushButton::clicked, multiSlider, &MultiSlider::addOneToTop); // add 5 handles for testing(bug in data)
+    //vLayout->addWidget(addToTopButton);
 
 //    removeFromRightButton = CreateFlatButton(":/res/icon/knob.png");
 //    connect(removeFromRightButton, &QPushButton::clicked, multiSlider, &MultiSlider::removeOneFromTop);
@@ -151,7 +151,7 @@ void MultiSliderWidget::createWidget() {
 //    connect(removeAllButton, &QPushButton::clicked, multiSlider, &MultiSlider::removeAll);
 //    vLayout->addWidget(removeAllButton);
 
-    vLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::Fixed));
+    //vLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::Fixed));
     widgetLayout->addLayout(vLayout);
 }
 
