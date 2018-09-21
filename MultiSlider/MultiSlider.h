@@ -8,7 +8,7 @@
 #include <qevent.h>
 #include <QDebug>
 #include <QtMath>
-#include "SliceInfo.h"
+//#include "SliceInfo.h"
 
 #define COUTINFO qDebug() << "[" << __FILE__ << ":" << __LINE__ << "]"
 
@@ -22,6 +22,7 @@ class MultiSlider : public QSlider {
 
     Q_PROPERTY(QVector<int> values READ values WRITE setValues NOTIFY valuesChanged)
     Q_PROPERTY(QVector<int> positions READ positions NOTIFY positionsChanged)
+    Q_PROPERTY(QVector<int> flags READ flags NOTIFY flagsChanged)
     Q_PROPERTY(QVector<float> sliceHeights READ sliceHeights NOTIFY sliceHeightsChanged)
     Q_PROPERTY(QVector<float> sliceExpoTimes READ sliceExpoTimes NOTIFY sliceExpoTimesChanged)
     Q_PROPERTY(QVector<int> sliceLiftHs READ sliceLiftHs NOTIFY sliceLiftHsChanged)
@@ -35,6 +36,7 @@ class MultiSlider : public QSlider {
         Q_DECLARE_PUBLIC(MultiSlider)
     protected:
         MultiSlider *const q_ptr;
+        //SliceInfo *sliceInfoDlg;
 
     public:
         MultiSliderPrivate(MultiSlider &object)
@@ -46,6 +48,14 @@ class MultiSlider : public QSlider {
             q->connect(q, &MultiSlider::rangeChanged, q, &MultiSlider::onRangeChanged);
             q->connect(q, &MultiSlider::rangeChanged, q, &MultiSlider::refreshMaxCount);
             q->connect(q, &MultiSlider::countChanged, q, &MultiSlider::refreshMaxCount);
+        }
+
+        // get rect of handle
+        void getHandleRect(QRect &handleRect) {
+            Q_Q(const MultiSlider);
+            QStyleOptionSlider option;
+            q->initStyleOption(&option);
+            handleRect = q->style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, q);
         }
 
         // function return first handle at given pos.
@@ -121,9 +131,9 @@ class MultiSlider : public QSlider {
                 }
                 return 999;
             }
-//            else if (mepos > maxCenter){
-//                return -1;
-//            }
+            //            else if (mepos > maxCenter){
+            //                return -1;
+            //            }
             return -1; // none handle or before begin
         }
 
@@ -195,39 +205,40 @@ class MultiSlider : public QSlider {
             } else {
                 painter->drawComplexControl(QStyle::CC_Slider, option);
 
-//                QRect clip = q->style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, q);
-//                painter->fillRect(clip, Qt::transparent);
-//                QString path = QString(":/res/icon/add") + ".png";
-//                painter->drawPixmap(clip, QPixmap(path));
+                //                QRect clip = q->style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, q);
+                //                painter->fillRect(clip, Qt::transparent);
+                //                QString path = QString(":/res/icon/add") + ".png";
+                //                painter->drawPixmap(clip, QPixmap(path));
 
                 QRect rect = q->style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, q);
                 QColor color_handle(Qt::lightGray);
                 //painter->fillRect(rect,color_handle);
 
                 // draw slider Position tag on slider left
-                int offset = 6;
+                QFont wordfont;
+                wordfont.setPointSize(10);
+                painter->setFont(wordfont);
+                QString sliderNum = QString::number(option.sliderPosition, 10);
+                QFontMetrics fm(wordfont);
+                int widthFontMetrics = fm.boundingRect("0000").width();
                 QPoint tickPts_position[] = {
-                    QPoint(rect.left() + offset*4,rect.bottom() + offset),
-                    QPoint(rect.left() + offset*4,rect.bottom() - offset*3),
-                    QPoint(rect.left(),rect.bottom() - offset*3),
-                    QPoint(rect.left(),rect.bottom() + offset),
+                    QPoint(rect.center().rx()-widthFontMetrics*0.5, rect.bottom()+0.2*rect.height()),
+                    QPoint(rect.center().rx()-widthFontMetrics*0.5, rect.top()   -0.2*rect.height()),
+                    QPoint(rect.center().rx()+widthFontMetrics*0.5, rect.top()   -0.2*rect.height()),
+                    QPoint(rect.center().rx()+widthFontMetrics*0.5, rect.bottom()+0.2*rect.height()),
                 };
                 QPen pen(color_handle);
                 painter->setPen(pen);
                 QBrush brush(color_handle);
                 painter->setBrush(brush);
                 painter->drawPolygon(tickPts_position, 4);
-                QFont font;
-                font.setPointSize(10);
-                painter->setFont(font);
-                QString sliderNum = QString::number(option.sliderPosition, 10);
                 pen.setColor(Qt::black);
                 painter->setPen(pen);
-                painter->drawText(rect.left() + offset, rect.bottom(), sliderNum);
+                painter->drawText(rect.center().rx()-widthFontMetrics*0.5, rect.bottom(), sliderNum);
 
                 // draw shutdown tag on slider right
-                offset = 8;
-                QPoint tickPts_shutdown(rect.right() - offset + 1, (rect.bottom()+rect.top())/2);
+                int offset = rect.height()*0.75;
+                QPoint tickPts_shutdown(rect.right() - offset*0.8, rect.center().y());
                 brush.setColor(Qt::red);
                 painter->setBrush(brush);
                 pen.setColor(Qt::lightGray);
@@ -250,6 +261,9 @@ class MultiSlider : public QSlider {
 
         // Positions on slider.
         QVector<int> _positions;
+
+        // Flag on slider.
+        QVector<int> _flags;
 
         // Slice Opt on slider
         QVector<float> _sliceHeights;
@@ -293,7 +307,9 @@ public:
     typedef QSlider SuperClass;
 
     static QColor color(int index, double bright) {
-        return QColor::fromHslF((index % 7) * 1.0 / 7, 1, bright);
+        return QColor::fromHslF(2 * 1.0 / 7, 1, bright); // bright 0-1 dark-light
+        //return QColor::fromHslF((index % 7) * 1.0 / 7, 1, bright);
+
     }
 
     explicit MultiSlider(Qt::Orientation o, QWidget *parent = nullptr) : QSlider(o, parent), d_ptr(new MultiSliderPrivate(*this)) {
@@ -338,6 +354,18 @@ public:
         return d->_positions.at(index);
     }
 
+    // holds the current slider flags.
+    // return slider current flags for all handles.
+    QVector<int> flags() const {
+        Q_D(const MultiSlider);
+        return d->_flags;
+    }
+    int flag(int index) const {
+        Q_D(const MultiSlider);
+        Q_ASSERT(index >= 0);
+        Q_ASSERT(index < d->_count);
+        return d->_flags.at(index);
+    }
     // holds the current slider sliceHeights.
     // return slider current sliceHeights for all handles.
     QVector<float> sliceHeights() const {
@@ -506,6 +534,7 @@ Q_SIGNALS:
     void selectedHandleChanged(int arg);
 
     //
+    void flagsChanged(QVector<int> arg);
     void sliceHeightsChanged(QVector<int> arg);
     void sliceExpoTimesChanged(QVector<int> arg);
     void sliceLiftHsChanged(QVector<int> arg);
@@ -609,6 +638,7 @@ public Q_SLOTS:
         if (-1 == index){
             d->_positions.insert(0, insertPosition);
             d->_values.insert(0, insertPosition);
+            d->_flags.insert(0, 0);
             d->_sliceHeights.insert(0, 0.1);
             d->_sliceExpoTimes.insert(0, 2.0);
             d->_sliceLiftHs.insert(0, 3);
@@ -617,6 +647,7 @@ public Q_SLOTS:
         else if (999 == index){
             d->_positions.insert(d->_count, insertPosition);
             d->_values.insert(d->_count, insertPosition);
+            d->_flags.insert(d->_count, 0);
             d->_sliceHeights.insert(d->_count, 0.1);
             d->_sliceExpoTimes.insert(d->_count, 2.0);
             d->_sliceLiftHs.insert(d->_count, 3);
@@ -625,6 +656,7 @@ public Q_SLOTS:
         else {
             d->_positions.insert(index + 1, insertPosition);
             d->_values.insert(index + 1, insertPosition);
+            d->_flags.insert(index + 1, 0);
             d->_sliceHeights.insert(index + 1, 0.1);
             d->_sliceExpoTimes.insert(index + 1, 2.0);
             d->_sliceLiftHs.insert(index + 1, 3);
@@ -756,9 +788,9 @@ protected Q_SLOTS:
     void refreshMaxCount() {
         Q_D(MultiSlider);
         int newMaxCount =
-            d->_minimumRange ? ((maximum() - minimum()) / d->_minimumRange - 1) : std::numeric_limits<int>::max(); // first position can be zero and
-                                                                                                                   // we set margin as
-                                                                                                                   // d->m_minimumRange
+                d->_minimumRange ? ((maximum() - minimum()) / d->_minimumRange - 1) : std::numeric_limits<int>::max(); // first position can be zero and
+        // we set margin as
+        // d->m_minimumRange
         if (d->_maxCount != newMaxCount) {
             d->_maxCount = newMaxCount;
             if (d->_count > d->_maxCount) {
@@ -844,25 +876,23 @@ protected:
 
         // if we are here, no handles have been pressed
         // Check if we pressed on the groove between the 2 handles
-
-        QStyle::SubControl control = this->style()->hitTestComplexControl(QStyle::CC_Slider, &option, e->pos(), this);
-        int index = d->posBetweenHandles(e->pos());
-        COUTINFO << "between index and index+1: index = " << index;
-        if (control == QStyle::SC_SliderGroove && -1 != index && index < 999) {
-            // warning lost of precision it might be fatal
-            d->_subclassPosition = (d->_positions.at(index) + d->_positions.at(index + 1)) / 2.;
-            d->_subclassClickOffset = mepos - d->pixelPosFromRangeValue(d->_subclassPosition);
-            d->_subclassWidth = (d->_positions.at(index + 1) - d->_positions.at(index)) / 2.;
-            this->setSliderDown(true);
-            if (!this->isHandleDown(index) || !this->isHandleDown(index + 1)) {
-                d->_selectedHandles.clear();
-                selectTwoHandles(index, index + 1);
-            }
-            e->accept();
-            return;
-        }
-
-        e->ignore();
+//        QStyle::SubControl control = this->style()->hitTestComplexControl(QStyle::CC_Slider, &option, e->pos(), this);
+//        int index = d->posBetweenHandles(e->pos());
+//        COUTINFO << "between index and index+1: index = " << index;
+//        if (control == QStyle::SC_SliderGroove && -1 != index && index < 999) {
+//            // warning lost of precision it might be fatal
+//            d->_subclassPosition = (d->_positions.at(index) + d->_positions.at(index + 1)) / 2.;
+//            d->_subclassClickOffset = mepos - d->pixelPosFromRangeValue(d->_subclassPosition);
+//            d->_subclassWidth = (d->_positions.at(index + 1) - d->_positions.at(index)) / 2.;
+//            this->setSliderDown(true);
+//            if (!this->isHandleDown(index) || !this->isHandleDown(index + 1)) {
+//                d->_selectedHandles.clear();
+//                selectTwoHandles(index, index + 1);
+//            }
+//            e->accept();
+//            return;
+//        }
+//        e->ignore();
     }
 
     virtual void mouseMoveEvent(QMouseEvent *e) override {
@@ -901,8 +931,8 @@ protected:
         QRect handleRect;
         int handle = d->handleAtPos(e->pos(), handleRect);
         if (handle != -1) {
-            int offset = 8;
-            int left = handleRect.right()-offset*2;
+            int offset = handleRect.height()*0.75;
+            int left = handleRect.right() - offset*0.8 - offset;
             int right = handleRect.right();
             int bottom = handleRect.bottom();
             int top = handleRect.top();
@@ -928,23 +958,25 @@ protected:
         QRect handleRect;
         int handle = d->handleAtPos(e->pos(), handleRect);
 
-        if (handle != -1){
-            COUTINFO << "double clicked handle" << handle;
+        if (0){//handle != -1
+            //COUTINFO << "double clicked handle" << handle;
             // show value
-            SliceInfo SliceInfoDlg;
-            SliceInfoDlg.m_dataComBoxLayerH->setCurrentText(QString::number(d->_sliceHeights[handle]));
-            SliceInfoDlg.m_dataComBoxTime->setCurrentText(QString::number(d->_sliceExpoTimes[handle]));
-            SliceInfoDlg.m_dataComBoxLiftH->setCurrentText(QString::number(d->_sliceLiftHs[handle]));
-            SliceInfoDlg.exec();
+            //SliceInfo SliceInfoDlg;
+            //SliceInfoDlg.m_dataComBoxLayerH->setCurrentText(QString::number(d->_sliceHeights[handle]));
+            //SliceInfoDlg.m_dataComBoxTime->setCurrentText(QString::number(d->_sliceExpoTimes[handle]));
+            //SliceInfoDlg.m_dataComBoxLiftH->setCurrentText(QString::number(d->_sliceLiftHs[handle]));
+            //SliceInfoDlg.exec();
+
             // change value
-            if(SliceInfoDlg.m_Saved)
-            {
-                d->_sliceHeights[handle] = SliceInfoDlg.m_RetLayerH;
-                d->_sliceExpoTimes[handle] = SliceInfoDlg.m_RetExpoTime;
-                d->_sliceLiftHs[handle] = SliceInfoDlg.m_RetLiftH;
-            }
+            //if(SliceInfoDlg.m_Saved)
+            //{
+            //    d->_sliceHeights[handle] = SliceInfoDlg.m_RetLayerH;
+            //    d->_sliceExpoTimes[handle] = SliceInfoDlg.m_RetExpoTime;
+            //    d->_sliceLiftHs[handle] = SliceInfoDlg.m_RetLiftH;
+            //}
         }
-        else{
+
+        if (-1 == handle){
             int insertIndex = d->posBetweenHandles(e->pos());
             int mouse_Y = e->pos().ry();
             int sliderBottom = this->rect().bottom(); // max
@@ -1061,8 +1093,8 @@ private:
             groove = QRect(QPoint(qMin(lr.left(), ur.center().x()) + (pos != 0 ? 10 : 0), groove.center().y() - 2),
                            QPoint(qMax(lr.left(), ur.right() - padding), groove.center().y() + 1));
         } else {
-            groove = QRect(QPoint(groove.center().x() - 15, qMin(lr.center().y(), ur.center().y() - 4)), //topleft
-                           QPoint(groove.center().x() + 14, qMax(lr.center().y(), ur.top()) + 3)); //bottomright
+            groove = QRect(QPoint(groove.center().x() - 11, qMin(lr.center().y(), ur.center().y() - 4)), //topleft
+                           QPoint(groove.center().x() + 10, qMax(lr.center().y(), ur.top()) + 3)); //bottomright
         }
 
         painter.setPen(QPen(highlight.darker(300), 0));

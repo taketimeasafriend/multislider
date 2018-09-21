@@ -1,6 +1,8 @@
 #include "sliceinfo.h"
 #include <QLayout>
 #include <QLabel>
+#include <QMouseEvent>
+#include <QGroupBox>
 
 SliceInfo::SliceInfo(QDialog *parent) : QDialog(parent)
 {
@@ -57,10 +59,23 @@ void SliceInfo::initWidget()
     layoutBtn->addWidget(m_BtnSave);
     layoutBtn->addWidget(m_BtnCancel);
 
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addLayout(layoutSlice);
-    layout->addLayout(layoutBtn);
-    setLayout(layout);
+    QVBoxLayout *layout1 = new QVBoxLayout;
+    layout1->addLayout(layoutSlice);
+    layout1->addLayout(layoutBtn);
+
+    QGroupBox *groupbox1 = new QGroupBox;
+    QGroupBox *groupbox2 = new QGroupBox;
+    groupbox1->setGeometry(this->pos().rx(),this->pos().ry(),this->width(),this->height()*0.5);
+    groupbox2->setGeometry(this->pos().rx(),this->height()*0.5,this->width(),this->height());
+
+    groupbox1->setLayout(layout1);
+    //add to groupbox2...
+
+    QVBoxLayout *layoutAll = new QVBoxLayout;
+    layoutAll->addWidget(groupbox1);
+    layoutAll->addWidget(groupbox2);
+    setLayout(layoutAll);
+    setWindowFlags(Qt::FramelessWindowHint);
 }
 
 void SliceInfo::Save()

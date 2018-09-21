@@ -1,11 +1,13 @@
 #include "MultiSliderWidget.h"
 #include "MultiSlider.h"
+#include "varislice_slider.h"
 
 #include <QKeyEvent>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QStyleOptionSpinBox>
 #include <QVBoxLayout>
+#include <QLabel>
 
 class MultiSliderWidget::SpinBox : public QSpinBox {
 public:
@@ -114,8 +116,8 @@ bool MultiSliderWidget::eventFilter(QObject *obj, QEvent *event) {
 
 void MultiSliderWidget::createWidget() {
     widgetLayout = new QVBoxLayout();
-    widgetLayout->setContentsMargins(5, 25, 5, 25);
-    widgetLayout->setSpacing(50);
+    //widgetLayout->setContentsMargins(5, 25, 5, 25);
+    //widgetLayout->setSpacing(50);
     QHBoxLayout *vLayout = new QHBoxLayout();
     vLayout->setSpacing(0);
 
@@ -136,9 +138,9 @@ void MultiSliderWidget::createWidget() {
 //    widgetLayout->addLayout(vLayout);
 
     sliderLayout = new QHBoxLayout();
-    sliderLayout->setSpacing(100);
-    widgetLayout->addLayout(sliderLayout);
+    sliderLayout->setSpacing(10);
 
+    widgetLayout->addLayout(sliderLayout);
     //vLayout = new QHBoxLayout();
     addToTopButton = CreateFlatButton(":/res/icon/add.png");
     connect(addToTopButton, &QPushButton::clicked, multiSlider, &MultiSlider::addOneToTop); // add 5 handles for testing(bug in data)
@@ -167,10 +169,11 @@ MultiSliderWidget::SpinBox *MultiSliderWidget::createSpinBox(int index) {
 }
 
 void MultiSliderWidget::initMultiSlider() {
-    //init data to test
+    //init data
     m_sliceCountDefault = m_modelHeight/m_sliceHeightDefault;
 
-    multiSlider = new MultiSlider(Qt::Vertical, this);
+    multiSlider = new VariSliceSlider(Qt::Vertical, this);
+
     multiSlider->setFixedWidth(80);
     multiSlider->setMaximum(m_sliceCountDefault);
     //i like three. Three is a good number:)
@@ -183,6 +186,8 @@ void MultiSliderWidget::initMultiSlider() {
     connect(multiSlider, &MultiSlider::maxCountChanged, this, &MultiSliderWidget::updateButtonsEnable);
     connect(multiSlider, &MultiSlider::countChanged, this, &MultiSliderWidget::onSliderCountChanged);
     connect(multiSlider, &MultiSlider::rangeChanged, this, &MultiSliderWidget::onSliderRangeChanged);
+
+    //connect(multiSlider, &MultiSlider::positionsChanged, );
 }
 
 void MultiSliderWidget::updateButtonsEnable() {
@@ -195,6 +200,13 @@ void MultiSliderWidget::updateButtonsEnable() {
 }
 
 void MultiSliderWidget::onSliderCountChanged(int count) {
+    if (count)
+    {
+    }
+    else
+    {
+    }
+
     int spinBoxesCount = count;
     if (_showDifferences && count > 0) {
         spinBoxesCount++; //add extra spinbox for distance between maximum and last value
@@ -211,7 +223,7 @@ void MultiSliderWidget::onSliderCountChanged(int count) {
         spinBoxes.append(spinBox);
         labelsLayout->insertWidget(labelsLayout->count(), spinBox);
     }
-    onSliderPositionsChanged(multiSlider->positions());
+    //onSliderPositionsChanged(multiSlider->positions());
 }
 
 void MultiSliderWidget::onSelectedHandleChanged(int handle) {
@@ -227,6 +239,10 @@ void MultiSliderWidget::onSliderPositionsChanged(QVector<int> values) {
     }
     else
     {
+        QString strPos = QString::number(multiSlider->positions().at(multiSlider->selectedHandle()));
+        //groupbox_Up->setTitle(strPos + tr(" lay up"));
+        //groupbox_Down->setTitle(strPos + tr(" lay down"));
+
         updataMultiSliderData(values);
     }
 //    for (auto spinBox : spinBoxes) {
@@ -298,16 +314,16 @@ void MultiSliderWidget::selectNextSpinBox() {
 }
 
 void MultiSliderWidget::onLabelsUnderChanged() {
-    sliderLayout->takeAt(0);
-    if (m_labelsUnder)
-    {
-        //sliderLayout->addLayout(labelsLayout);
-    }
+    //sliderLayout->takeAt(0);
+    //if (m_labelsUnder)
+    //{
+    //    sliderLayout->addLayout(labelsLayout);
+    //}
     sliderLayout->addWidget(multiSlider);
-    if (!m_labelsUnder)
-    {
-        //sliderLayout->addLayout(labelsLayout);
-    }
+    //if (!m_labelsUnder)
+    //{
+    //    sliderLayout->addLayout(labelsLayout);
+    //}
     //setFixedHeight(this->minimumSizeHint().height());
 }
 
@@ -352,10 +368,16 @@ void MultiSliderWidget::updataMultiSliderData(QVector<int> positions) {
     // todo...
     //int slicesCount = 0;
     //multiSlider->setMaximum(slicesCount);
-    QVector<float> allHeights2Bot;
-    getAllHeights2Bot(allHeights2Bot);
-    COUTINFO << "======================================================";
-    COUTINFO << "All Layers:" << allHeights2Bot << "layers count:" << allHeights2Bot.size();
+
+    //QVector<float> allHeights2Bot;
+    //getAllHeights2Bot(allHeights2Bot);
+    //COUTINFO << "======================================================";
+    //COUTINFO << "All Layers:" << allHeights2Bot << "layers count:" << allHeights2Bot.size();
+}
+
+int MultiSliderWidget::getSectionCount()
+{
+    return multiSlider->count() + 1;
 }
 
 void MultiSliderWidget::getAllHeights2Bot(QVector<float> &allHeights2Bot) {
@@ -400,8 +422,29 @@ void MultiSliderWidget::getAllHeights2Bot(QVector<float> &allHeights2Bot) {
 }
 
 void MultiSliderWidget::getAllExpoTimes(QVector<float> &allExpoTimes) {
+    int SectionCount = getSectionCount();
+    for(int i=0; i<SectionCount; i++){
+        float expoTime = multiSlider->sliceExpoTimes().at(i);
+        allExpoTimes.push_back(expoTime);
+    }
+    //allExpoTimes.push_back(m_ExpoTime);
     return;
 }
+
 void MultiSliderWidget::getAllLiftHs(QVector<int> &allLiftHs) {
+    int SectionCount = getSectionCount();
+    for(int i=0; i<SectionCount; i++){
+        float liftH = multiSlider->sliceLiftHs().at(i);
+        allLiftHs.push_back(liftH);
+    }
+    //allLiftHs.push_back(m_LiftH);
+    return;
+}
+
+void MultiSliderWidget::updateHandleSliceData() {
+//    m_RetLayerH = m_dataComBoxLayerH->currentText().toFloat();
+//    m_RetExpoTime = m_dataComBoxTime->currentText().toFloat();
+//    m_RetLiftH = m_dataComBoxLiftH->currentText().toInt();
+
     return;
 }

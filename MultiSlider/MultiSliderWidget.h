@@ -2,8 +2,11 @@
 #define MULTISLIDERWIDGET_H
 
 #include <QFrame>
+#include <QComboBox>
+#include <QGroupBox>
 
 class MultiSlider;
+class VariSliceSlider;
 class QPushButton;
 class QVBoxLayout;
 class QHBoxLayout;
@@ -42,12 +45,14 @@ private slots:
     void onSliderPositionsChanged(QVector<int> values);
     void onSliderRangeChanged(int min, int max);
     void onSpinBoxValueChanged(int value);
+    void updateHandleSliceData();
 
 private:
     QVBoxLayout *labelsLayout;
     QHBoxLayout *sliderLayout;
+    QVBoxLayout *groupboxLayout;
     QVBoxLayout *widgetLayout;
-    MultiSlider *multiSlider;
+    VariSliceSlider *multiSlider;
     QList<SpinBox *> spinBoxes;
     QPushButton *addToLeftButton;
     QPushButton *addToTopButton;
@@ -55,7 +60,6 @@ private:
     QPushButton *removeFromRightButton;
     QPushButton *removeAllButton;
 
-    //properties section
 public:
     bool labelsUnder() const;
     bool showPositions() const;
@@ -80,7 +84,9 @@ public:
     const float m_modelHeight = 10.0;
     const float m_sliceHeightDefault = 0.01;
     int m_sliceCountDefault;
+
 public:
+    int getSectionCount();
     void getAllHeights2Bot(QVector<float> &allHeights2Bot);
     void getAllExpoTimes(QVector<float> &allExpoTimes);
     void getAllLiftHs(QVector<int> &allLiftHs);
