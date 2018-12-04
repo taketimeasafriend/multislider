@@ -9,5 +9,5 @@
 
 ## preview
 
-![preview](http://pbxztmzhu.bkt.clouddn.com/image/multislider.png "preview")
+![preview](https://raw.githubusercontent.com/taketimeasafriend/pic_flow/master/github/multislider/multislider.png "preview")
 
